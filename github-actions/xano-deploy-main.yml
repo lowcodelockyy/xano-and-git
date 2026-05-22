@@ -1,0 +1,50 @@
+name: Deploy to Xano (main)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: xano-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: xano
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Configure Xano CLI profile
+        env:
+          XANO_AUTH: ${{ secrets.XANO_AUTH }}
+        run: |
+          npx -y @xano/cli profile create ci \
+            -i "https://x49e-vhvt-vbqx.sales.xano.io" \
+            -t "$XANO_AUTH" \
+            -w 90 \
+            -b v1 \
+            --default
+
+      - name: Create ci branch
+        run: npx -y @xano/cli branch create ci --source v1 -d "CI branch for testing changes"
+
+      - name: Push to ci branch
+        run: npx -y @xano/cli workspace push --sync --delete --force --branch ci
+
+      - name: Run unit tests on ci
+        run: npx -y @xano/cli unit_test run_all --branch ci
+
+      - name: Delete ci branch
+        run: npx -y @xano/cli branch delete ci --force
+
+      - name: Push to live branch
+        run: npx -y @xano/cli workspace push --sync --delete --force --branch v1
+
+      - name: Run unit tests on live
+        run: npx -y @xano/cli unit_test run_all --branch v1
