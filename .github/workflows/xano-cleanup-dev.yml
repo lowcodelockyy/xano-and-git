@@ -1,0 +1,74 @@
+name: Xano Cleanup Dev Branch
+
+on:
+  delete:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Dev Git/Xano branch label to delete, for example dev-login.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xano-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  XANO_PROD_BRANCH: ${{ vars.XANO_PROD_BRANCH || 'v1' }}
+  XANO_CLI_VERSION: ${{ vars.XANO_CLI_VERSION || 'latest' }}
+
+jobs:
+  cleanup:
+    name: Delete matching dev Xano branch
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.ref_type == 'branch' && startsWith(github.event.ref, 'dev-')) }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xano CLI
+        uses: ./.github/actions/setup-xano-cli
+        with:
+          instance-url: ${{ vars.XANO_INSTANCE_URL }}
+          auth-token: ${{ secrets.XANO_AUTH }}
+          workspace-id: ${{ vars.XANO_WORKSPACE_ID }}
+          branch: ${{ env.XANO_PROD_BRANCH }}
+          cli-version: ${{ env.XANO_CLI_VERSION }}
+
+      - name: Determine dev Xano branch
+        id: branch
+        env:
+          INPUT_BRANCH: ${{ inputs.branch }}
+          DELETED_REF: ${{ github.event.ref }}
+        run: |
+          set -euo pipefail
+          RAW_BRANCH="${INPUT_BRANCH:-$DELETED_REF}"
+          BRANCH=$(printf '%s' "$RAW_BRANCH" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | sed -E 's/-+/-/g; s/^-//; s/-$//')
+
+          if [[ "$BRANCH" != dev-* ]]; then
+            echo "::error::Cleanup only deletes Xano branches whose label starts with dev-."
+            exit 1
+          fi
+
+          if [ "$BRANCH" = "$XANO_PROD_BRANCH" ]; then
+            echo "::error::Refusing to delete production branch $XANO_PROD_BRANCH."
+            exit 1
+          fi
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Using Xano branch: $BRANCH"
+
+      - name: Delete Xano branch
+        env:
+          DEV_BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          if xano branch get "$DEV_BRANCH" > /dev/null 2>&1; then
+            xano branch delete "$DEV_BRANCH" --force
+          else
+            echo "Xano branch $DEV_BRANCH does not exist."
+          fi

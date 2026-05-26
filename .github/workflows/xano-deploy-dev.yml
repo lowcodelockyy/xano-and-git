@@ -1,0 +1,116 @@
+name: Xano Deploy Dev Branch
+
+on:
+  push:
+    branches: [dev-*]
+    paths:
+      - xano/**
+      - .github/actions/setup-xano-cli/**
+      - .github/actions/xano-sandbox-gate/**
+      - .github/scripts/**
+      - .github/workflows/xano-*.yml
+  workflow_dispatch:
+    inputs:
+      xano_branch:
+        description: Optional dev Xano branch label. Defaults to the selected Git ref name.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xano-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  XANO_CODE_DIR: xano
+  XANO_PROD_BRANCH: ${{ vars.XANO_PROD_BRANCH || 'v1' }}
+  XANO_CLI_VERSION: ${{ vars.XANO_CLI_VERSION || 'latest' }}
+
+jobs:
+  deploy:
+    name: Sandbox gate, then deploy dev branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xano CLI
+        uses: ./.github/actions/setup-xano-cli
+        with:
+          instance-url: ${{ vars.XANO_INSTANCE_URL }}
+          auth-token: ${{ secrets.XANO_AUTH }}
+          workspace-id: ${{ vars.XANO_WORKSPACE_ID }}
+          branch: ${{ env.XANO_PROD_BRANCH }}
+          cli-version: ${{ env.XANO_CLI_VERSION }}
+
+      - name: Determine dev Xano branch
+        id: branch
+        env:
+          INPUT_BRANCH: ${{ inputs.xano_branch }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          RAW_BRANCH="${INPUT_BRANCH:-$REF_NAME}"
+          BRANCH=$(printf '%s' "$RAW_BRANCH" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | sed -E 's/-+/-/g; s/^-//; s/-$//')
+
+          if [ -z "$BRANCH" ]; then
+            echo "::error::Could not derive a Xano branch label."
+            exit 1
+          fi
+
+          if [[ "$BRANCH" != dev-* ]]; then
+            echo "::error::Dev deployments must target a branch whose label starts with dev-."
+            exit 1
+          fi
+
+          if [ "$BRANCH" = "$XANO_PROD_BRANCH" ]; then
+            echo "::error::Refusing to deploy dev workflow to production branch $XANO_PROD_BRANCH."
+            exit 1
+          fi
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Using Xano branch: $BRANCH"
+
+      # Validate in the isolated sandbox before writing to any real branch.
+      - name: Sandbox gate
+        uses: ./.github/actions/xano-sandbox-gate
+        with:
+          code-dir: ${{ env.XANO_CODE_DIR }}
+
+      # Only reached if the sandbox gate passed.
+      - name: Ensure dev Xano branch exists
+        env:
+          DEV_BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          if xano branch get "$DEV_BRANCH" > /dev/null 2>&1; then
+            echo "Xano branch $DEV_BRANCH already exists."
+          else
+            xano branch create "$DEV_BRANCH" \
+              --source "$XANO_PROD_BRANCH" \
+              --description "Auto-created from GitHub branch ${GITHUB_REF_NAME}"
+          fi
+
+      - name: Push workspace to dev branch
+        env:
+          DEV_BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          xano workspace push \
+            --directory "$XANO_CODE_DIR" \
+            --branch "$DEV_BRANCH" \
+            --sync \
+            --delete \
+            --force \
+            --no-guids
+
+      - name: Upload Xano test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: xano-dev-${{ steps.branch.outputs.branch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/*.json
+          if-no-files-found: ignore

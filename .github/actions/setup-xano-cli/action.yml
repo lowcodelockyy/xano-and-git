@@ -1,0 +1,64 @@
+name: Setup Xano CLI
+description: Install and configure the Xano CLI for CI/CD workflows.
+
+inputs:
+  instance-url:
+    description: Xano instance URL, for example https://example.xano.io.
+    required: true
+  auth-token:
+    description: Xano API token.
+    required: true
+  workspace-id:
+    description: Xano workspace ID.
+    required: true
+  branch:
+    description: Default Xano branch label for the CLI profile.
+    required: true
+  cli-version:
+    description: Version range for @xano/cli.
+    required: false
+    default: latest
+  node-version:
+    description: Node.js version used to install @xano/cli.
+    required: false
+    default: "20"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install Xano CLI
+      shell: bash
+      env:
+        XANO_CLI_VERSION: ${{ inputs.cli-version }}
+      run: |
+        set -euo pipefail
+        npm install --global "@xano/cli@${XANO_CLI_VERSION}"
+        xano --version || true
+
+    - name: Configure Xano profile
+      shell: bash
+      env:
+        XANO_INSTANCE_URL: ${{ inputs.instance-url }}
+        XANO_AUTH: ${{ inputs.auth-token }}
+        XANO_WORKSPACE_ID: ${{ inputs.workspace-id }}
+        XANO_BRANCH: ${{ inputs.branch }}
+      run: |
+        set -euo pipefail
+        : "${XANO_INSTANCE_URL:?Set repository variable XANO_INSTANCE_URL}"
+        : "${XANO_AUTH:?Set repository secret XANO_AUTH}"
+        : "${XANO_WORKSPACE_ID:?Set repository variable XANO_WORKSPACE_ID}"
+        : "${XANO_BRANCH:?Set repository variable XANO_PROD_BRANCH or pass a branch input}"
+
+        xano profile create ci \
+          -i "$XANO_INSTANCE_URL" \
+          -t "$XANO_AUTH" \
+          -w "$XANO_WORKSPACE_ID" \
+          -b "$XANO_BRANCH" \
+          --default
+
+        xano workspace get

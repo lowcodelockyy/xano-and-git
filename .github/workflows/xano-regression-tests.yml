@@ -1,0 +1,48 @@
+name: Xano Regression Tests
+
+on:
+  schedule:
+    - cron: "17 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xano-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  XANO_PROD_BRANCH: ${{ vars.XANO_PROD_BRANCH || 'v1' }}
+  XANO_CLI_VERSION: ${{ vars.XANO_CLI_VERSION || 'latest' }}
+
+jobs:
+  regression:
+    name: Run production Xano tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xano CLI
+        uses: ./.github/actions/setup-xano-cli
+        with:
+          instance-url: ${{ vars.XANO_INSTANCE_URL }}
+          auth-token: ${{ secrets.XANO_AUTH }}
+          workspace-id: ${{ vars.XANO_WORKSPACE_ID }}
+          branch: ${{ env.XANO_PROD_BRANCH }}
+          cli-version: ${{ env.XANO_CLI_VERSION }}
+
+      - name: Run production Xano unit and workflow tests
+        run: |
+          set -euo pipefail
+          bash .github/scripts/run-xano-tests.sh "$XANO_PROD_BRANCH"
+
+      - name: Upload Xano test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: xano-regression-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/*.json
+          if-no-files-found: ignore

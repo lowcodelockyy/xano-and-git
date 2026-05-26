@@ -1,0 +1,55 @@
+name: Xano Sandbox Gate
+description: >
+  Reset the personal Xano sandbox, push the workspace into it, and run all
+  sandbox tests. The sandbox is a separate workspace, so this validates schema
+  and logic changes in full isolation from production. Requires the Xano CLI to
+  already be installed and configured (see the setup-xano-cli action).
+
+inputs:
+  code-dir:
+    description: Directory containing the Xano workspace code.
+    required: false
+    default: xano
+  report-prefix:
+    description: Prefix for the JSON test report filenames.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # The sandbox is a per-user singleton; `get` provisions it on first use.
+    - name: Ensure sandbox exists
+      shell: bash
+      run: xano sandbox get
+
+    # Reset to a clean slate so each run is reproducible and free of prior state.
+    - name: Reset sandbox
+      shell: bash
+      run: xano sandbox reset --force
+
+    # Full mirror push into the sandbox. This cannot touch any real workspace
+    # branch (prod included) because the sandbox is a different workspace.
+    - name: Push workspace to sandbox
+      shell: bash
+      env:
+        XANO_CODE_DIR: ${{ inputs.code-dir }}
+      run: |
+        set -euo pipefail
+        xano sandbox push \
+          --directory "$XANO_CODE_DIR" \
+          --sync \
+          --delete \
+          --force \
+          --no-guids
+
+    # Run the sandbox test suites. NOTE: the sandbox is not seeded with secrets
+    # such as GEMINI_API_KEY, so these tests must mock or skip external API
+    # calls; tests that require a live Gemini key will fail here by design.
+    - name: Run sandbox unit and workflow tests
+      shell: bash
+      env:
+        REPORT_PREFIX: ${{ inputs.report-prefix }}
+      run: |
+        set -euo pipefail
+        bash .github/scripts/run-sandbox-tests.sh "$REPORT_PREFIX"

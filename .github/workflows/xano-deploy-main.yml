@@ -1,0 +1,101 @@
+name: Xano Deploy Main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - xano/**
+      - .github/actions/setup-xano-cli/**
+      - .github/actions/xano-sandbox-gate/**
+      - .github/scripts/**
+      - .github/workflows/xano-*.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xano-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  XANO_CODE_DIR: xano
+  XANO_PROD_BRANCH: ${{ vars.XANO_PROD_BRANCH || 'v1' }}
+  XANO_CLI_VERSION: ${{ vars.XANO_CLI_VERSION || 'latest' }}
+
+jobs:
+  preflight:
+    name: Validate in the isolated sandbox
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xano CLI
+        uses: ./.github/actions/setup-xano-cli
+        with:
+          instance-url: ${{ vars.XANO_INSTANCE_URL }}
+          auth-token: ${{ secrets.XANO_AUTH }}
+          workspace-id: ${{ vars.XANO_WORKSPACE_ID }}
+          branch: ${{ env.XANO_PROD_BRANCH }}
+          cli-version: ${{ env.XANO_CLI_VERSION }}
+
+      - name: Sandbox gate
+        uses: ./.github/actions/xano-sandbox-gate
+        with:
+          code-dir: ${{ env.XANO_CODE_DIR }}
+          report-prefix: preflight-
+
+      - name: Upload preflight test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: xano-main-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/*.json
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy to production and verify
+    needs: preflight
+    runs-on: ubuntu-latest
+    environment: xano-production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xano CLI
+        uses: ./.github/actions/setup-xano-cli
+        with:
+          instance-url: ${{ vars.XANO_INSTANCE_URL }}
+          auth-token: ${{ secrets.XANO_AUTH }}
+          workspace-id: ${{ vars.XANO_WORKSPACE_ID }}
+          branch: ${{ env.XANO_PROD_BRANCH }}
+          cli-version: ${{ env.XANO_CLI_VERSION }}
+
+      # Reached only after the sandbox gate passed and the xano-production
+      # environment approval (if configured) is granted.
+      - name: Push workspace to production branch
+        run: |
+          set -euo pipefail
+          xano workspace push \
+            --directory "$XANO_CODE_DIR" \
+            --branch "$XANO_PROD_BRANCH" \
+            --sync \
+            --delete \
+            --force \
+            --no-guids
+
+      - name: Verify production Xano tests
+        run: |
+          set -euo pipefail
+          bash .github/scripts/run-xano-tests.sh "$XANO_PROD_BRANCH" "production-"
+
+      - name: Upload production test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: xano-main-deploy-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/*.json
+          if-no-files-found: ignore
