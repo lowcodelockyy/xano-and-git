@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xano Feature Shipping"
+  short_description: "Ship Xano backend features through Git and GitHub Actions."
+  default_prompt: "Help ship a Xano backend feature safely from latest main through dev branch, tests, PR, and deployment."
