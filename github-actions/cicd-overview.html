@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xano CI/CD Overview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18202f;
+      --muted: #5c677a;
+      --line: #d9dee8;
+      --panel: #ffffff;
+      --soft: #f4f6fa;
+      --brand: #0b6bcb;
+      --brand-soft: #e8f2ff;
+      --ok: #207a4c;
+      --warn: #a86400;
+      --danger: #b42318;
+      --shadow: 0 14px 36px rgba(24, 32, 47, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #eef2f7;
+      line-height: 1.55;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 40px 22px 64px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 28px;
+      align-items: stretch;
+      margin-bottom: 28px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 14px;
+      font-size: clamp(2rem, 4vw, 4.5rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 18px;
+      font-size: 1.45rem;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    p {
+      color: var(--muted);
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.92em;
+      color: #10284d;
+      background: #edf3fb;
+      border: 1px solid #d6e4f5;
+      border-radius: 5px;
+      padding: 1px 5px;
+    }
+
+    .hero,
+    .panel,
+    .card,
+    .summary-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 34px;
+      border-radius: 8px;
+    }
+
+    .hero p {
+      max-width: 760px;
+      margin-bottom: 0;
+      font-size: 1.08rem;
+    }
+
+    .summary-card {
+      display: grid;
+      align-content: center;
+      gap: 18px;
+      padding: 26px;
+      border-radius: 8px;
+    }
+
+    .stat {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .stat-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: var(--brand-soft);
+      color: var(--brand);
+      font-weight: 800;
+      font-size: 1.15rem;
+    }
+
+    .stat strong {
+      display: block;
+      line-height: 1.25;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .panel {
+      margin-top: 24px;
+      padding: 26px;
+      border-radius: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(160px, 1fr));
+      gap: 14px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 18px;
+      border-radius: 8px;
+      box-shadow: none;
+    }
+
+    .card p,
+    .card li {
+      font-size: 0.94rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      margin-bottom: 12px;
+      padding: 2px 8px;
+      border: 1px solid #c9ddf4;
+      border-radius: 999px;
+      background: var(--brand-soft);
+      color: #164d8f;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge.ok {
+      border-color: #bee5d0;
+      background: #e9f7ef;
+      color: var(--ok);
+    }
+
+    .badge.warn {
+      border-color: #f2d7a3;
+      background: #fff7e7;
+      color: var(--warn);
+    }
+
+    .flow {
+      display: grid;
+      gap: 12px;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .trigger {
+      padding: 12px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      font-weight: 700;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 96px;
+      padding: 13px 13px 13px 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+    }
+
+    .step::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 12px;
+      top: 13px;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .step.gate {
+      background: #fff7e7;
+      border-color: #f2d7a3;
+    }
+
+    .step.gate::before {
+      background: var(--warn);
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .step span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: #f8fafc;
+      font-size: 0.82rem;
+      color: #3c4658;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .callout {
+      margin-top: 16px;
+      padding: 16px;
+      border-left: 4px solid var(--brand);
+      border-radius: 7px;
+      background: #f8fbff;
+    }
+
+    .callout.warn {
+      border-left-color: var(--warn);
+      background: #fff9ef;
+    }
+
+    .callout p {
+      margin-bottom: 0;
+    }
+
+    .simple-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .simple-list li {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .simple-list span {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    .simple-list strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .simple-list p {
+      margin-bottom: 0;
+      font-size: 0.96rem;
+    }
+
+    .file-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .file {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 0.92rem;
+      overflow-wrap: anywhere;
+    }
+
+    .file strong {
+      color: var(--ink);
+    }
+
+    .dot {
+      flex: 0 0 auto;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--brand);
+    }
+
+    @media (max-width: 920px) {
+      header,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-row,
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow-grid {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      main {
+        padding: 24px 14px 42px;
+      }
+
+      .hero,
+      .panel,
+      .summary-card {
+        padding: 20px;
+      }
+
+      .workflow-grid {
+        grid-template-columns: 1fr;
+      }
+
+      th,
+      td {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <section class="hero">
+        <h1>Xano CI/CD</h1>
+        <p>
+          GitHub Actions validates every change in an isolated Xano <strong>sandbox</strong> — a separate
+          workspace that cannot touch production — and only writes to real branches after the sandbox tests
+          pass. Production deploys additionally pause for a required human approval before <code>v1</code> is
+          updated.
+        </p>
+      </section>
+
+      <aside class="summary-card" aria-label="CI/CD summary">
+        <div class="stat">
+          <div class="stat-icon">🧪</div>
+          <div>
+            <strong>Isolated sandbox gate</strong>
+            <span>All testing runs in a separate Xano workspace, never against production data or schema.</span>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">🔒</div>
+          <div>
+            <strong>Human approval before prod</strong>
+            <span>Main deploys wait for a required reviewer on the <code>xano-production</code> environment.</span>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">5</div>
+          <div>
+            <strong>GitHub workflows</strong>
+            <span>PR validation, dev deploys, prod deploys, cleanup, and nightly regression.</span>
+          </div>
+        </div>
+      </aside>
+    </header>
+
+    <section class="panel">
+      <h2>Simple Version</h2>
+      <ul class="simple-list">
+        <li>
+          <span>1</span>
+          <div>
+            <strong>GitHub watches the Xano code.</strong>
+            <p>When files in <code>xano/</code> change, GitHub Actions starts the right workflow.</p>
+          </div>
+        </li>
+        <li>
+          <span>2</span>
+          <div>
+            <strong>Every change is tested in the sandbox first.</strong>
+            <p>The sandbox is a separate Xano workspace, fully isolated from production data and schema.</p>
+          </div>
+        </li>
+        <li>
+          <span>3</span>
+          <div>
+            <strong>Tests live in the code.</strong>
+            <p>Unit tests sit inside each <code>.xs</code> file and workflow tests in their own folder, so they push to the sandbox automatically.</p>
+          </div>
+        </li>
+        <li>
+          <span>4</span>
+          <div>
+            <strong>Real branches update only after the gate passes.</strong>
+            <p><code>dev-*</code> deploys on green, and <code>main</code> deploys only after a human approves the production step.</p>
+          </div>
+        </li>
+        <li>
+          <span>5</span>
+          <div>
+            <strong>Nightly checks guard production.</strong>
+            <p>The full test suite runs against <code>v1</code> on a schedule to catch data, dependency, or external-API drift.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>Why The Sandbox</h2>
+      <div class="callout">
+        <p>
+          Every Xano branch shares one workspace database, so pushing a schema change to <em>any</em> branch —
+          even a temporary preflight branch — can affect production data. The sandbox is a <strong>separate
+          workspace</strong>, so pushing there cannot touch <code>v1</code>. That is why all preflight testing
+          runs in the sandbox instead of an in-workspace branch.
+        </p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>How The Flow Works</h2>
+      <div class="flow">
+        <div class="flow-row">
+          <div class="trigger">Pull request to <code>main</code></div>
+          <div class="steps">
+            <div class="step" data-step="1">
+              <strong>Reset sandbox</strong>
+              <span>Wipes the sandbox to a clean, reproducible slate.</span>
+            </div>
+            <div class="step" data-step="2">
+              <strong>Push code</strong>
+              <span>Syncs local <code>xano/</code> into the isolated sandbox.</span>
+            </div>
+            <div class="step" data-step="3">
+              <strong>Run tests</strong>
+              <span>Runs sandbox unit and workflow tests.</span>
+            </div>
+            <div class="step" data-step="4">
+              <strong>Upload reports</strong>
+              <span>Saves JSON output as workflow artifacts.</span>
+            </div>
+            <div class="step" data-step="5">
+              <strong>No workspace write</strong>
+              <span>A PR never touches any real Xano branch.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-row">
+          <div class="trigger">Push to <code>dev-*</code></div>
+          <div class="steps">
+            <div class="step" data-step="1">
+              <strong>Map branch</strong>
+              <span>Sanitizes the Git branch into a Xano branch label.</span>
+            </div>
+            <div class="step" data-step="2">
+              <strong>Sandbox gate</strong>
+              <span>Reset, push, and test in the isolated sandbox.</span>
+            </div>
+            <div class="step" data-step="3">
+              <strong>Create if needed</strong>
+              <span>Creates the dev Xano branch from production once.</span>
+            </div>
+            <div class="step" data-step="4">
+              <strong>Deploy dev</strong>
+              <span>Pushes to the persistent dev branch only if the gate passed.</span>
+            </div>
+            <div class="step" data-step="5">
+              <strong>Upload reports</strong>
+              <span>Saves JSON output as workflow artifacts.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-row">
+          <div class="trigger">Push to <code>main</code></div>
+          <div class="steps">
+            <div class="step" data-step="1">
+              <strong>Sandbox preflight</strong>
+              <span>Reset, push, and test the change in the isolated sandbox.</span>
+            </div>
+            <div class="step gate" data-step="2">
+              <strong>Approval gate</strong>
+              <span>A required reviewer signs off on the <code>xano-production</code> environment.</span>
+            </div>
+            <div class="step" data-step="3">
+              <strong>Deploy prod</strong>
+              <span>Pushes to <code>XANO_PROD_BRANCH</code> only after the gate and approval.</span>
+            </div>
+            <div class="step" data-step="4">
+              <strong>Verify prod</strong>
+              <span>Runs the test suites against production.</span>
+            </div>
+            <div class="step" data-step="5">
+              <strong>Report</strong>
+              <span>Uploads preflight and production JSON reports.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Workflow Responsibilities</h2>
+      <div class="workflow-grid">
+        <article class="card">
+          <span class="badge">PR CI</span>
+          <h3><code>xano-pr-ci.yml</code></h3>
+          <p>Validates pull requests entirely in the sandbox. Never writes to a real workspace branch.</p>
+        </article>
+        <article class="card">
+          <span class="badge">Dev</span>
+          <h3><code>xano-deploy-dev.yml</code></h3>
+          <p>Runs the sandbox gate, then deploys <code>dev-*</code> to a matching persistent Xano branch if green.</p>
+        </article>
+        <article class="card">
+          <span class="badge ok">Prod</span>
+          <h3><code>xano-deploy-main.yml</code></h3>
+          <p>Sandbox preflight, then a gated deploy job: human approval, push to production, verify.</p>
+        </article>
+        <article class="card">
+          <span class="badge warn">Cleanup</span>
+          <h3><code>xano-cleanup-dev.yml</code></h3>
+          <p>Deletes matching Xano branches when <code>dev-*</code> Git branches are deleted or manually selected.</p>
+        </article>
+        <article class="card">
+          <span class="badge">Nightly</span>
+          <h3><code>xano-regression-tests.yml</code></h3>
+          <p>Runs scheduled tests against production without pushing code, catching drift outside normal deploys.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Required GitHub Settings</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Secret</td>
+            <td><code>XANO_AUTH</code></td>
+            <td>Xano API token used by the CLI profile in GitHub Actions.</td>
+          </tr>
+          <tr>
+            <td>Variable</td>
+            <td><code>XANO_INSTANCE_URL</code></td>
+            <td>The Xano instance origin, such as <code>https://your-instance.xano.io</code>.</td>
+          </tr>
+          <tr>
+            <td>Variable</td>
+            <td><code>XANO_WORKSPACE_ID</code></td>
+            <td>The workspace ID where the backend is pushed and tested.</td>
+          </tr>
+          <tr>
+            <td>Variable</td>
+            <td><code>XANO_PROD_BRANCH</code></td>
+            <td>Optional. Defaults to <code>v1</code>.</td>
+          </tr>
+          <tr>
+            <td>Variable</td>
+            <td><code>XANO_CLI_VERSION</code></td>
+            <td>Optional. Defaults to <code>latest</code>; pin it when you want reproducible CLI installs.</td>
+          </tr>
+          <tr>
+            <td>Environment</td>
+            <td><code>xano-production</code></td>
+            <td>Active. A required reviewer must approve before any production write, and only <code>main</code> may deploy to it.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <p>
+          The workflows never hard-code the Xano instance URL or workspace ID. GitHub repository variables
+          and secrets provide that configuration at runtime; the sandbox is not seeded with secrets, so tests
+          must mock or skip external API calls.
+        </p>
+      </div>
+    </section>
+
+    <section class="panel grid">
+      <div>
+        <h2>Branch Rules</h2>
+        <ul>
+          <li><code>main</code> deploys to <code>XANO_PROD_BRANCH</code> (default <code>v1</code>) after the sandbox gate and approval.</li>
+          <li><code>dev-*</code> Git branches deploy to matching persistent Xano branches after the gate.</li>
+          <li>Pull requests are sandbox-only; they never write to the workspace.</li>
+          <li>Cleanup refuses to delete any branch that does not start with <code>dev-</code>.</li>
+          <li>One shared concurrency group serializes every Xano operation — essential because the sandbox is a per-account singleton.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Guardrails In Place</h2>
+        <ul>
+          <li><strong>Sandbox isolation:</strong> preflight runs in a separate workspace, so prod data and schema are never at risk.</li>
+          <li><strong>Approval gate:</strong> the <code>xano-production</code> environment requires a human reviewer before deploy.</li>
+          <li><strong>Branch protection on <code>main</code>:</strong> pull request required, force-pushes and deletions blocked, linear history enforced.</li>
+          <li><strong>Post-deploy verification:</strong> production tests re-run against <code>v1</code> after every prod push.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Regression Signal</h2>
+      <ul>
+        <li>Unit tests (<code>test {}</code> blocks inside each <code>.xs</code>) cover reusable functions, query behavior, middleware, and edge cases.</li>
+        <li>Workflow tests cover end-to-end backend paths, including multi-step API behavior.</li>
+        <li>Both suites run in the sandbox for preflight and against <code>v1</code> for post-deploy verification and the nightly schedule.</li>
+        <li>Every run uploads JSON results as workflow artifacts.</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>Files Involved</h2>
+      <div class="file-list">
+        <div class="file"><span class="dot"></span><strong>.github/actions/setup-xano-cli/action.yml</strong> installs and configures the Xano CLI.</div>
+        <div class="file"><span class="dot"></span><strong>.github/actions/xano-sandbox-gate/action.yml</strong> resets, pushes, and tests in the isolated sandbox — reused by the PR, dev, and main workflows.</div>
+        <div class="file"><span class="dot"></span><strong>.github/scripts/run-sandbox-tests.sh</strong> runs the sandbox unit and workflow test suites.</div>
+        <div class="file"><span class="dot"></span><strong>.github/scripts/run-xano-tests.sh</strong> runs branch tests for production verification and nightly regression.</div>
+        <div class="file"><span class="dot"></span><strong>.github/workflows/xano-pr-ci.yml</strong> validates pull requests in the sandbox only.</div>
+        <div class="file"><span class="dot"></span><strong>.github/workflows/xano-deploy-dev.yml</strong> gates then deploys development branches.</div>
+        <div class="file"><span class="dot"></span><strong>.github/workflows/xano-deploy-main.yml</strong> gates, awaits approval, then deploys and verifies production.</div>
+        <div class="file"><span class="dot"></span><strong>.github/workflows/xano-cleanup-dev.yml</strong> removes obsolete dev branches.</div>
+        <div class="file"><span class="dot"></span><strong>.github/workflows/xano-regression-tests.yml</strong> runs scheduled production tests.</div>
+        <div class="file"><span class="dot"></span><strong>docs/ci-cd-pipeline.md</strong> is the canonical written reference for this pipeline.</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
