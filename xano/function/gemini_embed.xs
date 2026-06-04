@@ -56,6 +56,11 @@ function "gemini_embed" {
       params = $body
       headers = ["Content-Type: application/json", "x-goog-api-key: " ~ $env.GEMINI_API_KEY]
       timeout = 30
+      mock = {
+        "parses multimodal embeddings response": {response: {status: 200, result: {embeddings: [{values: [0.1, 0.2, 0.3]}]}}},
+        "parses text embedding response": {response: {status: 200, result: {embedding: {values: [0.4, 0.5]}}}},
+        "throws on non-2xx response": {response: {status: 500, result: {error: "boom"}}}
+      }
     } as $api_result
 
     precondition ($api_result.response.status >= 200 && $api_result.response.status < 300) {
@@ -91,4 +96,24 @@ function "gemini_embed" {
 
   response = $values
   guid = "BBzK4QUBpx4p4JV4KCXokBG93Gk"
+
+  test "parses multimodal embeddings response" {
+    input = { text_content: "a cat", image_base64: "QUJD", image_mime_type: "image/png" }
+    expect.to_equal ($response) { value = [0.1, 0.2, 0.3] }
+  }
+
+  test "parses text embedding response" {
+    input = { text_content: "hello world" }
+    expect.to_equal ($response) { value = [0.4, 0.5] }
+  }
+
+  test "throws on non-2xx response" {
+    input = { text_content: "hello world" }
+    expect.to_throw
+  }
+
+  test "throws when no text or image provided" {
+    input = { }
+    expect.to_throw
+  }
 }

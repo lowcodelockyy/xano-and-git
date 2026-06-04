@@ -53,4 +53,11 @@ query "search" verb=POST {
     }
   }
   guid = "VXv0aLspATrS2-k9eVPVqHuOOFI"
+
+  // Sandbox-safe: the input precondition fires before the Gemini call, so this
+  // needs no secret. Validates the "must provide a query" contract.
+  test "rejects empty query" {
+    input = { }
+    expect.to_throw
+  }
 }

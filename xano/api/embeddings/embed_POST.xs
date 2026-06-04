@@ -69,4 +69,11 @@ query "embed" verb=POST {
     dims      : ($vector|count)
   }
   guid = "C5Dho8EfOQ2a9W2d6tzdA63ZiA8"
+
+  // Sandbox-safe: the input precondition fires before the Gemini call, so this
+  // needs no secret. Validates the "must provide content or image" contract.
+  test "rejects empty input" {
+    input = { }
+    expect.to_throw
+  }
 }

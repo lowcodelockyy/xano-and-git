@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xano Local + CI/CD — Intro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue: #1b62f8;
+      --blue-bright: #0b5aff;
+      --blue-soft: #6ea8fe;
+      --navy: #000b22;
+      --navy-2: #05122e;
+      --ink: #ffffff;
+      --muted: #9bb0d4;
+      --muted-dim: #6b7ca0;
+      --line: rgba(122, 160, 240, 0.16);
+      --panel: rgba(255, 255, 255, 0.035);
+      --panel-hi: rgba(122, 160, 240, 0.07);
+      --radius: 16px;
+      --radius-lg: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--navy);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ambient gradient field */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(900px 600px at 78% -8%, rgba(27, 98, 248, 0.45), transparent 60%),
+        radial-gradient(800px 600px at 12% 108%, rgba(38, 6, 107, 0.55), transparent 60%),
+        linear-gradient(160deg, #05122e 0%, #000b22 55%, #00081a 100%);
+      z-index: -2;
+    }
+    /* subtle grid */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(122,160,240,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(122,160,240,0.05) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 75%);
+      z-index: -1;
+    }
+
+    .deck { position: relative; min-height: 100vh; }
+
+    .slide {
+      display: none;
+      min-height: 100vh;
+      padding: 7vh 7vw;
+      max-width: 1240px;
+      margin: 0 auto;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .slide.active { display: flex; animation: fade 0.45s cubic-bezier(.2,.7,.2,1); }
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    h1 {
+      margin: 0 0 22px;
+      font-size: clamp(2.6rem, 6vw, 5.4rem);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+    }
+    h1 .grad {
+      background: linear-gradient(120deg, #ffffff 0%, var(--blue-soft) 55%, var(--blue) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: clamp(2rem, 3.6vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+    }
+    h3 { margin: 0 0 6px; font-size: 1.08rem; font-weight: 700; letter-spacing: -0.01em; }
+    p { color: var(--muted); margin: 0 0 16px; }
+    .lead { font-size: clamp(1.05rem, 1.6vw, 1.35rem); max-width: 760px; color: var(--muted); font-weight: 500; }
+
+    code {
+      font-family: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, monospace;
+      font-size: 0.88em;
+      color: #cfe0ff;
+      background: rgba(27, 98, 248, 0.16);
+      border: 1px solid rgba(27, 98, 248, 0.3);
+      border-radius: 6px;
+      padding: 1px 7px;
+    }
+
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 9px;
+      margin-bottom: 26px; padding: 7px 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel-hi);
+      color: var(--blue-soft);
+      font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      width: max-content;
+    }
+    .eyebrow::before {
+      content: ""; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--blue); box-shadow: 0 0 12px 2px var(--blue);
+    }
+
+    .kicker {
+      font-size: 0.82rem; font-weight: 700; color: var(--blue);
+      text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 12px;
+    }
+
+    /* title pills */
+    .title-tools { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 11px;
+      padding: 12px 20px; border-radius: 999px;
+      background: var(--panel); border: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      font-weight: 600; font-size: 1rem; color: #e6eeff;
+    }
+    .pill .glyph { font-size: 1.2rem; line-height: 1; }
+
+    /* feature header */
+    .feature-head { display: flex; align-items: center; gap: 22px; margin-bottom: 30px; }
+    .feature-icon {
+      display: grid; place-items: center; width: 84px; height: 84px; flex: 0 0 auto;
+      border-radius: 22px; font-size: 2.4rem;
+      background: linear-gradient(145deg, rgba(27,98,248,0.28), rgba(11,90,255,0.08));
+      border: 1px solid rgba(110,168,254,0.35);
+      box-shadow: 0 0 40px -8px rgba(27,98,248,0.6), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+
+    /* cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(218px, 1fr)); gap: 16px; margin-top: 10px; }
+    .card {
+      position: relative; overflow: hidden;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 22px;
+      backdrop-filter: blur(8px);
+      transition: border-color .2s, transform .2s;
+    }
+    .card::before {
+      content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(110,168,254,0.5), transparent);
+    }
+    .card .glyph {
+      display: grid; place-items: center; width: 46px; height: 46px;
+      border-radius: 12px; margin-bottom: 16px; color: var(--blue-soft);
+      background: rgba(27,98,248,0.16); border: 1px solid rgba(27,98,248,0.3);
+    }
+
+    /* line-icon system */
+    .ic { stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; display: block; }
+    .pill .glyph .ic { width: 20px; height: 20px; color: var(--blue-soft); }
+    .feature-icon { color: var(--blue-soft); }
+    .feature-icon .ic { width: 42px; height: 42px; }
+    .card .glyph .ic { width: 23px; height: 23px; }
+    .card p { font-size: 0.95rem; margin: 0; color: var(--muted); }
+
+    .callout {
+      margin-top: 28px; padding: 18px 22px;
+      border-radius: var(--radius); max-width: 840px;
+      background: linear-gradient(100deg, rgba(27,98,248,0.16), rgba(38,6,107,0.12));
+      border: 1px solid rgba(110,168,254,0.28);
+    }
+    .callout p { margin: 0; color: #dbe6ff; font-weight: 500; }
+    .callout strong { color: #fff; }
+
+    /* journey steps */
+    .journey { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 20px; }
+    .stepc {
+      position: relative; padding: 20px 18px;
+      border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--panel); backdrop-filter: blur(8px);
+    }
+    .stepc.gate {
+      background: linear-gradient(160deg, rgba(27,98,248,0.22), rgba(11,90,255,0.06));
+      border-color: rgba(110,168,254,0.4);
+      box-shadow: 0 0 36px -10px rgba(27,98,248,0.7);
+    }
+    .stepc .num {
+      display: grid; place-items: center; width: 30px; height: 30px;
+      border-radius: 9px; font-weight: 800; font-size: 0.9rem; margin-bottom: 14px;
+      background: var(--blue); color: #fff; box-shadow: 0 0 16px -2px var(--blue);
+    }
+    .stepc strong { display: block; margin-bottom: 5px; font-size: 1rem; font-weight: 700; }
+    .stepc span { color: var(--muted-dim); font-size: 0.86rem; }
+
+    /* chrome */
+    .nav {
+      position: fixed; bottom: 26px; right: 32px;
+      display: flex; align-items: center; gap: 12px; z-index: 10;
+    }
+    .nav button {
+      width: 46px; height: 46px; border-radius: 50%;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+      color: #dbe6ff; font-size: 1.3rem; cursor: pointer; backdrop-filter: blur(8px);
+      transition: background .15s, box-shadow .15s, transform .1s;
+    }
+    .nav button:hover { background: var(--blue); color: #fff; box-shadow: 0 0 24px -4px var(--blue); }
+    .nav button:active { transform: scale(0.94); }
+    .nav button:disabled { opacity: 0.3; cursor: default; }
+    .nav button:disabled:hover { background: rgba(255,255,255,0.04); color: #dbe6ff; box-shadow: none; }
+    .counter { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); font-size: 0.9rem; min-width: 46px; text-align: center; }
+
+    .brandmark {
+      position: fixed; top: 32px; left: 7vw; z-index: 10;
+      display: flex; align-items: center; opacity: 0.92;
+    }
+    .brandmark svg { height: 22px; width: auto; display: block; }
+    .brandmark .dot { width: 13px; height: 13px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 14px 2px var(--blue); }
+
+    /* logo lockup on the title slide */
+    .logo-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 30px; }
+    .logo-hero svg { height: 40px; width: auto; display: block; filter: drop-shadow(0 0 18px rgba(27,98,248,0.5)); }
+    .logo-hero .rule { width: 1px; height: 30px; background: var(--line); }
+    .logo-hero .tag { color: var(--muted); font-weight: 600; font-size: 0.95rem; letter-spacing: 0.01em; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--blue-bright), var(--blue-soft)); box-shadow: 0 0 12px var(--blue); transition: width 0.45s ease; z-index: 11; }
+
+    @media (max-width: 640px) {
+      .slide { padding: 9vh 7vw; }
+      .feature-head { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .brandmark { left: 7vw; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></symbol>
+      <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+      <symbol id="i-branch" viewBox="0 0 24 24"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+      <symbol id="i-flask" viewBox="0 0 24 24"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.04A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.04A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></symbol>
+      <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91 0z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+      <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+      <symbol id="i-commit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><line x1="3" x2="9" y1="12" y2="12"/><line x1="15" x2="21" y1="12" y2="12"/></symbol>
+      <symbol id="i-pr" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" x2="6" y1="9" y2="21"/></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="progress" id="progress"></div>
+  <div class="brandmark"><svg viewBox="0 0 81 19" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Xano"><g clip-path="url(#cmk)"><path d="M35.3719 1.4933C35.175 1.14542 34.9106 0.839671 34.5942 0.593659C34.224 0.319511 33.7722 0.176042 33.3105 0.186036C32.8501 0.177574 32.3996 0.318192 32.0269 0.586625C31.7047 0.828084 31.4361 1.13289 31.2377 1.48202L23.5508 14.2096L26.8112 17.313L33.2068 6.53968L35.9397 11.0999H31.8548L30.002 14.2837L37.8426 14.3L40.0356 17.9535H45.3474L35.3719 1.4933Z" fill="#FEFEFE"/><path d="M54.915 0.273694V10.7557L45.032 1.01729C44.792 0.769275 44.5098 0.565228 44.1985 0.41453C43.9023 0.277839 43.5796 0.207052 43.253 0.20712C42.9367 0.198376 42.6225 0.259523 42.3328 0.386141C42.0432 0.51276 41.7856 0.701688 41.5785 0.93927C41.1763 1.4329 40.9686 2.05499 40.9943 2.68949V9.30518L45.3182 16.4928V7.49133L55.1578 17.319C55.7141 17.8703 56.3403 18.1503 57.022 18.1503C57.3295 18.1561 57.6346 18.0947 57.9156 17.9706C58.1966 17.8465 58.4467 17.6625 58.6485 17.4319C59.0404 16.9873 59.2391 16.3921 59.2391 15.6653V0.273694H54.915Z" fill="#FEFEFE"/><path d="M80.3682 5.54986C79.9705 4.52153 79.3596 3.58767 78.5751 2.8088C77.7907 2.02992 76.8502 1.42341 75.8147 1.02855C74.7022 0.602059 73.5183 0.388975 72.326 0.400598H68.4308C67.2687 0.390821 66.1151 0.599618 65.0311 1.01596C64.0078 1.41355 63.0754 2.01149 62.2894 2.77419C61.4968 3.55264 60.8769 4.48698 60.4694 5.5173C60.0295 6.63118 59.8093 7.81859 59.8207 9.01497C59.8118 10.2166 60.0288 11.4093 60.4607 12.5318C60.8675 13.5882 61.4808 14.5541 62.2655 15.374C63.0447 16.1778 63.976 16.821 65.006 17.2667C66.0878 17.7338 67.2563 17.9699 68.4359 17.9599H72.3286C74.0668 17.987 75.7711 17.4806 77.2084 16.5097C78.6458 15.5388 79.7463 14.1509 80.3595 12.5355C80.7917 11.4131 81.0088 10.2204 80.9995 9.01874C81.0127 7.83314 80.7985 6.65587 80.3682 5.54986ZM72.3285 13.5288H68.4308C67.8595 13.5344 67.2931 13.423 66.7671 13.2016C66.2756 12.9944 65.832 12.6898 65.4632 12.3062C65.0864 11.907 64.7932 11.4374 64.6008 10.9247C64.3848 10.3556 64.2768 9.7518 64.2821 9.14371C64.2738 8.53725 64.3811 7.93471 64.5982 7.3678C64.7926 6.8667 65.0848 6.4087 65.4581 6.02013C65.8273 5.64237 66.27 5.34322 66.7594 5.14092C67.2898 4.92796 67.858 4.8229 68.4301 4.83194H72.3279C72.9131 4.82544 73.4935 4.93459 74.0357 5.15303C74.5374 5.35189 74.9914 5.65306 75.3685 6.03706C75.7456 6.42107 76.0374 6.87937 76.225 7.38236C76.4416 7.94622 76.5498 8.54547 76.5437 9.14894C76.549 9.75705 76.4409 10.3609 76.225 10.9299C76.0314 11.4413 75.7358 11.9087 75.3561 12.3039C74.9786 12.6891 74.5271 12.9951 74.0281 13.2036C73.4898 13.4257 72.9114 13.5362 72.3285 13.5288Z" fill="#FEFEFE"/><path d="M17.611 8.6683L26.4059 0.404297H18.6759L13.7461 5.03733L17.582 8.6405L17.611 8.6683Z" fill="#FEFEFE"/><path d="M17.582 9.71711L13.7461 13.3216L18.6759 17.9535H26.4059L17.611 9.68945L17.582 9.71711Z" fill="#FEFEFE"/><path d="M7.72997 0.404297H0L9.33727 9.17946L0 17.9534H7.72997L17.0694 9.17946L7.72997 0.404297Z" fill="#FEFEFE"/></g><defs><clipPath id="cmk"><rect width="81" height="18" fill="white" transform="translate(0 0.185547)"/></clipPath></defs></svg></div>
+
+  <div class="deck" id="deck">
+
+    <!-- 1. Title -->
+    <section class="slide active">
+      <div class="logo-hero">
+        <svg viewBox="0 0 81 19" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Xano"><g clip-path="url(#cmk)"><path d="M35.3719 1.4933C35.175 1.14542 34.9106 0.839671 34.5942 0.593659C34.224 0.319511 33.7722 0.176042 33.3105 0.186036C32.8501 0.177574 32.3996 0.318192 32.0269 0.586625C31.7047 0.828084 31.4361 1.13289 31.2377 1.48202L23.5508 14.2096L26.8112 17.313L33.2068 6.53968L35.9397 11.0999H31.8548L30.002 14.2837L37.8426 14.3L40.0356 17.9535H45.3474L35.3719 1.4933Z" fill="#FEFEFE"/><path d="M54.915 0.273694V10.7557L45.032 1.01729C44.792 0.769275 44.5098 0.565228 44.1985 0.41453C43.9023 0.277839 43.5796 0.207052 43.253 0.20712C42.9367 0.198376 42.6225 0.259523 42.3328 0.386141C42.0432 0.51276 41.7856 0.701688 41.5785 0.93927C41.1763 1.4329 40.9686 2.05499 40.9943 2.68949V9.30518L45.3182 16.4928V7.49133L55.1578 17.319C55.7141 17.8703 56.3403 18.1503 57.022 18.1503C57.3295 18.1561 57.6346 18.0947 57.9156 17.9706C58.1966 17.8465 58.4467 17.6625 58.6485 17.4319C59.0404 16.9873 59.2391 16.3921 59.2391 15.6653V0.273694H54.915Z" fill="#FEFEFE"/><path d="M80.3682 5.54986C79.9705 4.52153 79.3596 3.58767 78.5751 2.8088C77.7907 2.02992 76.8502 1.42341 75.8147 1.02855C74.7022 0.602059 73.5183 0.388975 72.326 0.400598H68.4308C67.2687 0.390821 66.1151 0.599618 65.0311 1.01596C64.0078 1.41355 63.0754 2.01149 62.2894 2.77419C61.4968 3.55264 60.8769 4.48698 60.4694 5.5173C60.0295 6.63118 59.8093 7.81859 59.8207 9.01497C59.8118 10.2166 60.0288 11.4093 60.4607 12.5318C60.8675 13.5882 61.4808 14.5541 62.2655 15.374C63.0447 16.1778 63.976 16.821 65.006 17.2667C66.0878 17.7338 67.2563 17.9699 68.4359 17.9599H72.3286C74.0668 17.987 75.7711 17.4806 77.2084 16.5097C78.6458 15.5388 79.7463 14.1509 80.3595 12.5355C80.7917 11.4131 81.0088 10.2204 80.9995 9.01874C81.0127 7.83314 80.7985 6.65587 80.3682 5.54986ZM72.3285 13.5288H68.4308C67.8595 13.5344 67.2931 13.423 66.7671 13.2016C66.2756 12.9944 65.832 12.6898 65.4632 12.3062C65.0864 11.907 64.7932 11.4374 64.6008 10.9247C64.3848 10.3556 64.2768 9.7518 64.2821 9.14371C64.2738 8.53725 64.3811 7.93471 64.5982 7.3678C64.7926 6.8667 65.0848 6.4087 65.4581 6.02013C65.8273 5.64237 66.27 5.34322 66.7594 5.14092C67.2898 4.92796 67.858 4.8229 68.4301 4.83194H72.3279C72.9131 4.82544 73.4935 4.93459 74.0357 5.15303C74.5374 5.35189 74.9914 5.65306 75.3685 6.03706C75.7456 6.42107 76.0374 6.87937 76.225 7.38236C76.4416 7.94622 76.5498 8.54547 76.5437 9.14894C76.549 9.75705 76.4409 10.3609 76.225 10.9299C76.0314 11.4413 75.7358 11.9087 75.3561 12.3039C74.9786 12.6891 74.5271 12.9951 74.0281 13.2036C73.4898 13.4257 72.9114 13.5362 72.3285 13.5288Z" fill="#FEFEFE"/><path d="M17.611 8.6683L26.4059 0.404297H18.6759L13.7461 5.03733L17.582 8.6405L17.611 8.6683Z" fill="#FEFEFE"/><path d="M17.582 9.71711L13.7461 13.3216L18.6759 17.9535H26.4059L17.611 9.68945L17.582 9.71711Z" fill="#FEFEFE"/><path d="M7.72997 0.404297H0L9.33727 9.17946L0 17.9534H7.72997L17.0694 9.17946L7.72997 0.404297Z" fill="#FEFEFE"/></g></svg>
+        <span class="rule"></span>
+        <span class="tag">Backend · Local &amp; CI/CD</span>
+      </div>
+      <span class="eyebrow">AI speed · engineering rigor</span>
+      <h1>Xano, local &amp;<br><span class="grad">in your CI/CD flow</span></h1>
+      <p class="lead">
+        Develop your Xano backend the way engineers expect — on your machine, in a feature
+        branch, validated in an isolated sandbox, and promoted through GitHub. No clicking
+        around the platform to ship.
+      </p>
+      <div class="title-tools">
+        <span class="pill"><span class="glyph"><svg class="ic"><use href="#i-terminal"/></svg></span> Xano CLI</span>
+        <span class="pill"><span class="glyph"><svg class="ic"><use href="#i-bot"/></svg></span> Xano Developer MCP</span>
+        <span class="pill"><span class="glyph"><svg class="ic"><use href="#i-branch"/></svg></span> Git &amp; GitHub Actions</span>
+      </div>
+    </section>
+
+    <!-- 2. What we'll cover -->
+    <section class="slide">
+      <div class="kicker">In this video</div>
+      <h2>What we'll walk through</h2>
+      <p class="lead">From a clean local environment to a tested change promoted into dev — managed entirely through GitHub.</p>
+      <div class="journey">
+        <div class="stepc"><div class="num">1</div><strong>Pull down</strong><span>Pull the workspace locally with the Xano CLI.</span></div>
+        <div class="stepc"><div class="num">2</div><strong>Feature branch</strong><span>Create a new Git feature branch to work in.</span></div>
+        <div class="stepc gate"><div class="num">3</div><strong>Sandbox CI</strong><span>Push a sandbox preview; tests run in isolation.</span></div>
+        <div class="stepc"><div class="num">4</div><strong>Review PR</strong><span>Open a PR on GitHub and review the green checks.</span></div>
+        <div class="stepc"><div class="num">5</div><strong>Promote to dev</strong><span>Merge to deploy the change to the dev branch.</span></div>
+      </div>
+      <div class="callout"><p>First, let's meet the <strong>three primitives</strong> that make this workflow possible.</p></div>
+    </section>
+
+    <!-- 3. Xano CLI -->
+    <section class="slide">
+      <div class="feature-head">
+        <div class="feature-icon"><svg class="ic"><use href="#i-terminal"/></svg></div>
+        <div><div class="kicker">Primitive 01</div><h2>Xano CLI</h2></div>
+      </div>
+      <p class="lead">Your terminal interface to Xano — move a whole workspace between Xano and your filesystem, and drive the sandbox.</p>
+      <div class="cards">
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-download"/></svg></div><h3>Pull a workspace</h3><p>Bring your backend down to local <code>.xs</code> files you can edit and commit.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-upload"/></svg></div><h3>Push a workspace</h3><p>Sync local changes back up to a Xano branch when you're ready.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-flask"/></svg></div><h3>Create a sandbox</h3><p>Spin up an isolated sandbox workspace that can't touch production.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-rocket"/></svg></div><h3>Push to sandbox</h3><p>Deploy your change into the sandbox so tests can run against it.</p></div>
+      </div>
+    </section>
+
+    <!-- 4. Xano Developer MCP -->
+    <section class="slide">
+      <div class="feature-head">
+        <div class="feature-icon"><svg class="ic"><use href="#i-bot"/></svg></div>
+        <div><div class="kicker">Primitive 02</div><h2>Xano Developer MCP</h2></div>
+      </div>
+      <p class="lead">Teaches your AI agent how Xano actually works — so it writes valid XanoScript and drives the CLI correctly, instead of guessing.</p>
+      <div class="cards">
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-book"/></svg></div><h3>XanoScript syntax</h3><p>Documentation on the XanoScript language so the agent writes correct logic.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-check"/></svg></div><h3>Validate XanoScript</h3><p>A tool that checks XanoScript is valid before it ever reaches the sandbox.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-wrench"/></svg></div><h3>CLI guidance</h3><p>Docs on the CLI so the agent knows how to pull, push, and manage sandboxes.</p></div>
+      </div>
+      <div class="callout"><p>The MCP turns an agent from "vaguely aware of Xano" into a <strong>reliable pair-developer</strong> for this workflow.</p></div>
+    </section>
+
+    <!-- 5. Git & GitHub -->
+    <section class="slide">
+      <div class="feature-head">
+        <div class="feature-icon"><svg class="ic"><use href="#i-branch"/></svg></div>
+        <div><div class="kicker">Primitive 03</div><h2>Git &amp; GitHub Actions</h2></div>
+      </div>
+      <p class="lead">Your source of truth and your automation engine — changes are managed as PRs in GitHub, not inside the Xano platform.</p>
+      <div class="cards">
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-commit"/></svg></div><h3>Version control</h3><p>Every backend change lives in Git as reviewable, revertible commits.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-pr"/></svg></div><h3>Pull requests</h3><p>Manage and review changes through GitHub PRs — the team's familiar flow.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-gear"/></svg></div><h3>GitHub Actions</h3><p>Workflows reset the sandbox, push your code, and run tests automatically.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-shield"/></svg></div><h3>Gated promotion</h3><p>Real branches update only after the sandbox gate goes green.</p></div>
+      </div>
+    </section>
+
+    <!-- 6. Together -->
+    <section class="slide">
+      <div class="kicker">The three, together</div>
+      <h2>One workflow, three primitives</h2>
+      <p class="lead">Each tool owns a part of the loop — and they hand off to each other cleanly.</p>
+      <div class="cards">
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-terminal"/></svg></div><h3>Xano CLI</h3><p>Moves code between Xano and your machine, and drives the sandbox.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-bot"/></svg></div><h3>Developer MCP</h3><p>Keeps the agent fluent in XanoScript and the CLI.</p></div>
+        <div class="card"><div class="glyph"><svg class="ic"><use href="#i-branch"/></svg></div><h3>Git &amp; GitHub</h3><p>Manages PRs and runs the sandbox-gated CI/CD.</p></div>
+      </div>
+      <div class="callout"><p>Next up — let's open the IDE and run the <strong>real workflow</strong> end to end.</p></div>
+    </section>
+
+  </div>
+
+  <div class="nav">
+    <button id="prev" aria-label="Previous slide">‹</button>
+    <span class="counter" id="counter">1 / 6</span>
+    <button id="next" aria-label="Next slide">›</button>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const counter = document.getElementById('counter');
+    const progress = document.getElementById('progress');
+    const prev = document.getElementById('prev');
+    const next = document.getElementById('next');
+    let i = 0;
+    function show(n) {
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+      counter.textContent = (i + 1) + ' / ' + slides.length;
+      progress.style.width = ((i + 1) / slides.length * 100) + '%';
+      prev.disabled = i === 0;
+      next.disabled = i === slides.length - 1;
+    }
+    prev.addEventListener('click', () => show(i - 1));
+    next.addEventListener('click', () => show(i + 1));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+      if (e.key === 'Home') show(0);
+      if (e.key === 'End') show(slides.length - 1);
+    });
+    show(0);
+  </script>
+</body>
+</html>
