@@ -1,0 +1,66 @@
+{
+  "failed": 0,
+  "passed": 10,
+  "results": [
+    {
+      "name": "parses multimodal embeddings response",
+      "obj_name": "gemini_embed",
+      "obj_type": "function",
+      "status": "pass"
+    },
+    {
+      "name": "parses text embedding response",
+      "obj_name": "gemini_embed",
+      "obj_type": "function",
+      "status": "pass"
+    },
+    {
+      "name": "throws on non-2xx response",
+      "obj_name": "gemini_embed",
+      "obj_type": "function",
+      "status": "pass"
+    },
+    {
+      "name": "throws when no text or image provided",
+      "obj_name": "gemini_embed",
+      "obj_type": "function",
+      "status": "pass"
+    },
+    {
+      "name": "rejects empty input",
+      "obj_name": "embed",
+      "obj_type": "query",
+      "status": "pass"
+    },
+    {
+      "name": "reports ok with stored count",
+      "obj_name": "health",
+      "obj_type": "query",
+      "status": "pass"
+    },
+    {
+      "name": "reports ok with empty store",
+      "obj_name": "health",
+      "obj_type": "query",
+      "status": "pass"
+    },
+    {
+      "name": "greets the provided name",
+      "obj_name": "hello",
+      "obj_type": "query",
+      "status": "pass"
+    },
+    {
+      "name": "defaults to world when no name given",
+      "obj_name": "hello",
+      "obj_type": "query",
+      "status": "pass"
+    },
+    {
+      "name": "rejects empty query",
+      "obj_name": "search",
+      "obj_type": "query",
+      "status": "pass"
+    }
+  ]
+}

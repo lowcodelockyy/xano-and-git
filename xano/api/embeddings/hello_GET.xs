@@ -11,7 +11,7 @@ query "hello" verb=GET {
 
   stack {
     var $who {
-      value = $input.name ?? "world"
+      value = ($input.name == null || $input.name == "") ? "world" : $input.name
     }
 
     var $greeted_at {
