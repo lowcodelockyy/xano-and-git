@@ -2,7 +2,7 @@
 // Provide `content` (text) and/or `image_base64` + `image_mime_type`.
 query "embed" verb=POST {
   api_group = "Embeddings"
-  description = "Create and store a multimodal embedding from text and/or an image."
+  description = "Create and store a multimodal embedding from text and/or an image.."
 
   input {
     text? title? filters=trim
